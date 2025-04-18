@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chat with Sophie</title>
+    <style>
+        /* Basic styling for the body */
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f1f1f1;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            overflow: hidden;
+        }
+
+        /* Chat container */
+        #chat-container {
+            background-color: #fff;
+            border-radius: 15px;
+            width: 420px;
+            height: 550px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        /* Messages area */
+        #messages {
+            flex: 1;
+            padding: 20px;
+            overflow-y: auto;
+            background-color: #f9f9f9;
+            border-bottom: 1px solid #ddd;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Individual message styling */
+        .message {
+            margin-bottom: 12px;
+            padding: 12px;
+            border-radius: 15px;
+            max-width: 80%;
+            line-height: 1.5;
+            font-size: 14px;
+            word-wrap: break-word;
+            animation: fadeIn 0.3s ease-in-out;
+        }
+
+        /* User message styling */
+        .user {
+            background-color: #d1e7ff;
+            align-self: flex-end;
+            border-bottom-right-radius: 0;
+        }
+
+        /* Bot message styling */
+        .bot {
+            background-color: #e1e1e1;
+            align-self: flex-start;
+            border-bottom-left-radius: 0;
+        }
+
+        /* Typing indicator styling */
+        .typing-indicator {
+            display: none;
+            font-size: 14px;
+            color: #007bff;
+            margin-bottom: 10px;
+            font-style: italic;
+        }
+
+        /* Input container */
+        #user-input-container {
+            padding: 12px 20px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background-color: #fff;
+            border-top: 1px solid #ddd;
+        }
+
+        /* User input field */
+        #user-input {
+            width: 75%;
+            padding: 12px;
+            border-radius: 20px;
+            border: 1px solid #ccc;
+            font-size: 14px;
+            transition: all 0.3s ease-in-out;
+        }
+
+        /* Send button styling */
+        #send-button {
+            background-color: #007bff;
+            color: #fff;
+            border: none;
+            border-radius: 50%;
+            padding: 14px;
+            cursor: pointer;
+            transition: background-color 0.2s ease-in-out;
+        }
+
+        /* Button hover effect */
+        #send-button:hover {
+            background-color: #0056b3;
+        }
+
+        /* Button active effect */
+        #send-button:active {
+            background-color: #003d7a;
+        }
+
+        /* Input field focus effect */
+        #user-input:focus {
+            border-color: #007bff;
+        }
+
+        /* Keyframe for fade-in animation */
+        @keyframes fadeIn {
+            0% {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+            100% {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* Background gradient */
+        #chat-container {
+            background: linear-gradient(135deg, #6e7bff, #9f9fe5);
+        }
+    </style>
+</head>
+<body>
+
+    <div id="chat-container">
+        <div id="messages"></div>
+        <div id="user-input-container">
+            <input type="text" id="user-input" placeholder="Type a message..." />
+            <button id="send-button" onclick="sendMessage()">Send</button>
+        </div>
+        <div id="typing-indicator" class="typing-indicator">Sophie is typing...</div>
+    </div>
+
+    <script>
+        // Get DOM elements
+        const messagesDiv = document.getElementById("messages");
+        const userInputField = document.getElementById("user-input");
+        const typingIndicator = document.getElementById("typing-indicator");
+
+        // Function to handle sending message
+        function sendMessage() {
+            const userMessage = userInputField.value.trim();
+            if (!userMessage) return;
+
+            // Display user's message in the chat window
+            displayMessage(userMessage, 'user');
+
+            // Clear input field
+            userInputField.value = "";
+
+            // Show typing indicator while waiting for bot response
+            typingIndicator.style.display = 'block';
+
+            // Send message to Rasa API
+            fetch("http://localhost:5005/webhooks/rest/webhook", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify({
+                    sender: "user",
+                    message: userMessage
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                // Hide typing indicator when response is received
+                typingIndicator.style.display = 'none';
+
+                // Display bot's reply
+                if (data && data.length) {
+                    data.forEach(message => {
+                        displayMessage(message.text, 'bot');
+                    });
+                }
+            })
+            .catch(error => {
+                typingIndicator.style.display = 'none';
+                console.error('Error:', error);
+            });
+        }
+
+        // Function to display message in the chat window
+        function displayMessage(message, sender) {
+            const messageDiv = document.createElement("div");
+            messageDiv.classList.add("message", sender);
+            messageDiv.textContent = message;
+            messagesDiv.appendChild(messageDiv);
+
+            // Scroll to the bottom of the chat window
+            messagesDiv.scrollTop = messagesDiv.scrollHeight;
+        }
+
+        // Handle Enter key press to send message
+        userInputField.addEventListener("keypress", function(event) {
+            if (event.key === "Enter") {
+                sendMessage();
+            }
+        });
+    </script>
+
+</body>
+</html>
