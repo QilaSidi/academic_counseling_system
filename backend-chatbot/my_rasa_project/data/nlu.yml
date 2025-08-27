@@ -98,5 +98,20 @@ nlu:
       - I'm feeling stressed, what should I do?
       - What can I do if I'm feeling anxious?
       - Can you suggest ways to cope with depression?
+  
+  - intent: feeling_stressed
+    examples: |
+      - I feel stressed
+      - I'm overwhelmed
+      - I can't take this anymore
+      - Too much stress lately
+
+  - intent: ask_for_counselor
+    examples: |
+      - Can I talk to a counselor?
+      - I need to speak to someone
+      - Help me to find a counselor
+      
+
 
 

@@ -9,38 +9,48 @@ intents:
   - mood_unhappy
   - bot_challenge
   - ask_mental_health_advice
+  - ask_for_counselor
+  - feeling_stressed
+  - user_message
 
 responses:
   utter_greet:
-  - text: "Hey! How are you?"
+    - text: "Hey! How are you?"
 
   utter_cheer_up:
-  - text: "Here is something to cheer you up:"
-    image: "https://i.imgur.com/nGF1K8f.jpg"
+    - text: "Here is something to cheer you up:"
+      image: "https://i.imgur.com/nGF1K8f.jpg"
 
   utter_did_that_help:
-  - text: "Did that help you?"
+    - text: "Did that help you?"
 
   utter_happy:
-  - text: "Great, carry on!"
+    - text: "Great, carry on!"
 
   utter_goodbye:
-  - text: "Bye"
+    - text: "Bye"
 
   utter_iamabot:
-  - text: "I am a bot, powered by Rasa."
+    - text: "I am a bot, powered by Rasa."
 
   utter_ask_mental_health_advice:
-  - text: |
-      Mental health is just as important as physical health. Here are some tips to improve your well-being:
-      1. Practice mindfulness and meditation.
-      2. Talk to a counselor or therapist if you're feeling overwhelmed.
-      3. Make sure to take breaks and prioritize self-care.
-      4. Exercise regularly and get enough sleep.
-      5. Connect with loved ones for support.
+    - text: |
+        Mental health is just as important as physical health. Here are some tips to improve your well-being:
+        1. Practice mindfulness and meditation.
+        2. Talk to a counselor or therapist if you're feeling overwhelmed.
+        3. Make sure to take breaks and prioritize self-care.
+        4. Exercise regularly and get enough sleep.
+        5. Connect with loved ones for support.
+
+  utter_feeling_stressed:
+    - text: "I'm really sorry you're feeling this way. Stress can be so overwhelming. Would you like to talk about it? I'm here for you."
+
+  utter_ask_for_counselor:
+    - text: "Of course. It's brave of you to reach out. I can help you book an appointment – would you like to do that now?"
 
 actions: 
   - utter_ask_mental_health_advice
+  - action_analyze_sentiment
 
 session_config:
   session_expiration_time: 60

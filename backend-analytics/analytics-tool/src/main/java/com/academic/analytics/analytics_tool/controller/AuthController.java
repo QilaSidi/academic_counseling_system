@@ -1,64 +1,44 @@
 package com.academic.analytics.analytics_tool.controller;
-
-import com.google.api.client.googleapis.auth.oauth2.GoogleIdToken;
-import com.academic.analytics.analytics_tool.security.JwtUtil;
-import com.academic.analytics.analytics_tool.security.GoogleVerifier;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.ResponseEntity;
-import org.springframework.http.HttpStatus;
-import org.springframework.web.bind.annotation.*;
-import java.util.HashMap;
+// this is auth controller for the backend testing only
 import java.util.Map;
 
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.CrossOrigin;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+
+import com.academic.analytics.analytics_tool.security.JwtUtil;
+
 @RestController
-@RequestMapping("/api/auth")
+@CrossOrigin(origins = "http://localhost:3000", allowCredentials = "true")
+@RequestMapping("/auth")
 public class AuthController {
 
-    @Autowired
-    private GoogleVerifier googleVerifier;
+    private final JwtUtil jwtUtil;
 
-    @Autowired
-    private JwtUtil jwtUtil;
+    @Value("${app.studentDomain}")
+    private String studentDomain;
 
-    @PostMapping("/login")
-    public ResponseEntity<?> loginWithGoogle(@RequestBody Map<String, String> request) {
-        String googleToken = request.get("token");
+    public AuthController(JwtUtil jwtUtil) {
+        this.jwtUtil = jwtUtil;
+    }
 
-        try {
-            GoogleIdToken.Payload payload = googleVerifier.verifyToken(googleToken);
-            if (payload == null) {
-                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                                     .body(Map.of("error", "Invalid Google token."));
-            }
+    @PostMapping("/google")
+    public ResponseEntity<?> googleLogin(@RequestBody Map<String, String> body) {
+        String email = body.get("email");
 
-            String email = payload.getEmail();
-            System.out.println("Raw email: '" + email + "'");
-            String sanitizedEmail = email.trim().replaceAll("\\p{C}", "");
-            System.out.println("Sanitized email: '" + sanitizedEmail + "'");
-
-            String[] emailParts = sanitizedEmail.split("@");
-            if (emailParts.length != 2 || !emailParts[1].equalsIgnoreCase("student.kuptm.edu.my")) {
-                System.out.println("Rejected email domain: " + sanitizedEmail);
-                return ResponseEntity.status(HttpStatus.FORBIDDEN)
-                                     .body(Map.of(
-                                         "error", "Access denied. Please use your KUPTM student email.",
-                                         "details", "Allowed domain: @student.kuptm.edu.my"
-                                     ));
-            }
-
-            String role = "STUDENT";
-            String jwt = jwtUtil.generateJwtToken(sanitizedEmail, role);
-
-            Map<String, String> response = new HashMap<>();
-            response.put("jwt", jwt);
-            response.put("role", role);
-            response.put("email", sanitizedEmail);
-
-            return ResponseEntity.ok(response);
-
-        } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                                 .body(Map.of("error", "Token verification failed.", "details", e.getMessage()));
+        if (email == null || !email.contains("@")) {
+            return ResponseEntity.badRequest().body("Invalid email");
         }
+
+        String role = email.endsWith(studentDomain) ? "student" : "counselor";
+
+        String token = jwtUtil.generateToken(email, role);
+
+        return ResponseEntity.ok(Map.of("token", token, "role", role));
     }
 }
+

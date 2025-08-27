@@ -1,61 +1,99 @@
 package com.academic.analytics.analytics_tool.service;
 
-import com.google.api.client.googleapis.auth.oauth2.GoogleIdToken;
-import com.google.api.client.googleapis.auth.oauth2.GoogleIdTokenVerifier;
-import com.google.api.client.http.javanet.NetHttpTransport;
-import com.google.api.client.json.gson.GsonFactory;
+import java.io.IOException;
+import java.security.GeneralSecurityException;
+import java.util.Collections;
+
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 
-import java.util.Collections;
-import java.util.Map;
+import com.academic.analytics.analytics_tool.dto.AuthRequest;
+import com.academic.analytics.analytics_tool.dto.AuthResponse;
+import com.academic.analytics.analytics_tool.dto.GoogleLoginRequest;
+import com.academic.analytics.analytics_tool.dto.RegisterRequest;
+import com.academic.analytics.analytics_tool.model.Counselor;
+import com.academic.analytics.analytics_tool.repository.CounselorRepository;
+import com.google.api.client.googleapis.auth.oauth2.GoogleIdToken;
+import com.google.api.client.googleapis.auth.oauth2.GoogleIdTokenVerifier;
+import com.google.api.client.http.javanet.NetHttpTransport;
+import com.google.api.client.json.JsonFactory;
+import com.google.api.client.json.gson.GsonFactory;
+
 
 @Service
 public class AuthService {
 
+    @Autowired
+    private CounselorRepository counselorRepository;
+
+    @Autowired
+    private JwtService jwtService;
+
     private static final String GOOGLE_CLIENT_ID = "97031596166-p0s80nr5ptse1sd49galglh2fnu1u8r8.apps.googleusercontent.com";
 
-    public ResponseEntity<?> handleGoogleLogin(String token) {
-        if (token == null || token.isEmpty()) {
-            return ResponseEntity.badRequest().body("Missing Google token");
-        }
+    private static final JsonFactory JSON_FACTORY = GsonFactory.getDefaultInstance();
 
-        GoogleIdToken.Payload payload = verifyGoogleToken(token);
-        if (payload == null) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Invalid Google token");
-        }
+    public ResponseEntity<AuthResponse> register(RegisterRequest request) {
+        String email = request.getEmail();
 
-        String email = payload.getEmail();
-        String role = getUserRole(email);
+        Counselor counselor = new Counselor();
+        counselor.setEmail(email);
+        counselor.setName(request.getName());
+        // TODO: Set other Counselor fields as needed
 
-        return ResponseEntity.ok(Map.of(
-                "message", "Login successful",
-                "name", payload.get("name"),
-                "email", email,
-                "picture", payload.get("picture"),
-                "role", role
-        ));
+        counselorRepository.save(counselor);
+
+        return ResponseEntity.ok(new AuthResponse(null, "User registered successfully"));
     }
 
-    private GoogleIdToken.Payload verifyGoogleToken(String token) {
+    public ResponseEntity<AuthResponse> authenticate(AuthRequest request) {
+        String email = request.getEmail();
+        Counselor counselor = counselorRepository.findByEmail(email).orElse(null);
+
+        if (counselor == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body(new AuthResponse(null, "Invalid credentials"));
+        }
+
+        String token = jwtService.generateToken(counselor);
+        return ResponseEntity.ok(new AuthResponse(token, "Authenticated successfully"));
+    }
+
+    public ResponseEntity<AuthResponse> googleLogin(GoogleLoginRequest request) {
         try {
-            GoogleIdTokenVerifier verifier = new GoogleIdTokenVerifier.Builder(
-                    new NetHttpTransport(), GsonFactory.getDefaultInstance())
+            String idTokenString = request.getIdToken();
+
+            GoogleIdTokenVerifier verifier = new GoogleIdTokenVerifier.Builder(new NetHttpTransport(), JSON_FACTORY)
                     .setAudience(Collections.singletonList(GOOGLE_CLIENT_ID))
                     .build();
 
-            GoogleIdToken idToken = verifier.verify(token);
-            return idToken != null ? idToken.getPayload() : null;
-        } catch (Exception e) {
-            return null;
-        }
-    }
+            GoogleIdToken idToken = verifier.verify(idTokenString);
+            if (idToken == null) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                        .body(new AuthResponse(null, "Invalid ID token"));
+            }
 
-    private String getUserRole(String email) {
-        if ("aqilahrosidi@gmail.com".equals(email) || email.endsWith("@uptmcounselor.edu.my")) {
-            return "COUNSELOR";
+            GoogleIdToken.Payload payload = idToken.getPayload();
+
+            String email = payload.getEmail();
+            String name = (String) payload.get("name");
+
+            Counselor counselor = counselorRepository.findByEmail(email).orElse(null);
+            if (counselor == null) {
+                counselor = new Counselor();
+                counselor.setEmail(email);
+                counselor.setName(name != null ? name : "Google User");
+                counselorRepository.save(counselor);
+            }
+
+            String jwt = jwtService.generateToken(counselor);
+            return ResponseEntity.ok(new AuthResponse(jwt, "Google login successful"));
+
+        } catch (GeneralSecurityException | IOException e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(new AuthResponse(null, "Google login error: " + e.getMessage()));
         }
-        return "STUDENT";
     }
 }

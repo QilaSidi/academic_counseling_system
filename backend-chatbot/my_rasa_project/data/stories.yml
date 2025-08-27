@@ -32,3 +32,18 @@ stories:
     steps:
       - intent: ask_mental_health_advice
       - action: utter_ask_mental_health_advice
+
+  - story: Respond to user message with sentiment analysis
+    steps:
+      - intent: user_message
+      - action: action_analyze_sentiment
+  
+  - story: stressed user path
+    steps:
+      - intent: feeling_stressed
+      - action: utter_feeling_stressed
+
+  - story: request counselor
+    steps:
+      - intent: ask_for_counselor
+      - action: utter_ask_for_counselor

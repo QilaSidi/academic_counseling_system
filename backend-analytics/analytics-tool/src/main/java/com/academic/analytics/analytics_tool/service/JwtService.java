@@ -1,14 +1,17 @@
 package com.academic.analytics.analytics_tool.service;
-import com.academic.analytics.analytics_tool.model.Counselor;  // Add this import
+import java.security.Key;  // Add this import
+import java.util.Date;
+
+import javax.crypto.spec.SecretKeySpec;
+
+import org.springframework.stereotype.Service;
+
+import com.academic.analytics.analytics_tool.model.Counselor;
 
 import io.jsonwebtoken.Claims;
-import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.JwtParser;
+import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
-import javax.crypto.spec.SecretKeySpec;
-import java.security.Key;
-import java.util.Date;
-import org.springframework.stereotype.Service;
 
 @Service
 public class JwtService {
